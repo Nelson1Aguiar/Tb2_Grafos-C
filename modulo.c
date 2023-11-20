@@ -6,11 +6,13 @@ void menu() {
     int op,partida,destino;
 
     grafo=lerArquivo(grafo);
+
+    Grafo* componentes[DFS(grafo)];
     arvoreGeradoraMin=kruskal(grafo);
 
     do{
         puts("------------------------------DIGITE SUA OPCAO------------------------------\n\n");
-        printf("\t1 - Exibir grafo\n\t2 - Exibir arvore geradora minima\n\t3 - Informar valor de menor caminho\n\t0 - Sair\n");
+        printf("\t1 - Exibir grafo\n\t2 - Exibir arvore geradora minima\n\t3 - Informar valor de menor caminho\n\t4- Gerar arquivo de arvore de caminhos minimos\n\t0 - Sair\n");
         scanf("%d",&op);
         switch (op) {
             case 1:
@@ -25,6 +27,12 @@ void menu() {
                 printf("\nInforme o vertice de destino: ");
                 scanf("%d",&destino);
                 dijkstra(arvoreGeradoraMin,partida,destino);
+                break;
+            case 4:
+                gerarArquivo(arvoreGeradoraMin);
+                break;
+            case 5:
+                DFS(grafo);
                 break;
             case 0:
                 for (int i = 0; i < grafo->v; i++) {
@@ -76,6 +84,8 @@ Grafo* lerArquivo(Grafo* grafo){
     fclose(arquivo);
     return grafo;
 }
+
+
 
 //FUNÇÃO QUE CRIA UM NO PARA A LISTA DE ADJACÊNCIA
 Lista* criarNo(int num,float peso) {
@@ -135,6 +145,40 @@ void printGrafo(Grafo* grafo) {
         }
         printf("NULL\n");
     }
+}
+
+void DFSRecursivo(Grafo* grafo, int vertice, int visitados[]) {
+    visitados[vertice] = 1;
+
+    Lista* corrente = grafo->listaAdj[vertice];
+    while (corrente != NULL) {
+        int destino = corrente->num;
+        if (!visitados[destino]) {
+            DFSRecursivo(grafo, destino, visitados);
+        }
+        corrente = corrente->prox;
+    }
+}
+
+// Função de busca em profundidade
+int DFS(Grafo* grafo) {
+    Grafo* componentes[100];
+    int V = grafo->v,qtdComponentes=0;
+    int *visitados = (int *)malloc(V * sizeof(int));
+
+    // Inicializa o array de visitados
+    for (int i = 0; i < V; i++) {
+        visitados[i] = 0;
+    }
+
+    // Chama a função de busca em profundidade recursiva para cada vértice não visitado
+    for (int i = 0; i < V; i++) {
+        if (!visitados[i]) {
+            DFSRecursivo(grafo, i, visitados);
+            qtdComponentes+=1;
+        }
+    }
+    return qtdComponentes;
 }
 
 int buscar(int subsets[], int i) {
@@ -199,14 +243,15 @@ Grafo* kruskal(Grafo* grafo) {
 }
 
 void dijkstra(Grafo* grafo, int origem, int destino) {
-    int V = grafo->v;
+    int V = grafo->v,cont=V-1;
     float dist[V]; // Armazena as distâncias mínimas
-    int visitado[V]; // Marca os vértices visitados
+    int visitado[V],rota[V];// Marca os vértices visitados
 
     // Inicializa as distâncias e os vértices visitados
     for (int i = 0; i < V; ++i) {
         dist[i] = FLT_MAX;
         visitado[i] = 0;
+        rota[i]=INT_MAX;
     }
 
     // A distância de origem para ela mesma é sempre 0
@@ -240,11 +285,54 @@ void dijkstra(Grafo* grafo, int origem, int destino) {
             int v = temp->num;
             if (!visitado[v] && dist[u] != FLT_MAX && dist[u] + temp->peso < dist[v]) {
                 dist[v] = dist[u] + temp->peso;
+                grafo->listaAdj[v]->pai=u;
             }
             temp = temp->prox;
         }
     }
+    //Ver a rota mínima entre a origem e o destino
+    int corrent=destino;
+    rota[cont]=corrent;
+    cont-=1;
+    while (corrent!=origem){
+        corrent=grafo->listaAdj[corrent]->pai;
+        rota[cont]=corrent;
+        cont-=1;
+    }
 
     // Exibe a distância mínima do vértice de origem para o destino
     printf("\nA menor distancia entre os vertices %d e %d: %.1f\n", origem, destino, dist[destino]);
+    printf("Rota: ");
+    for(int i=0;i<V;i++){
+        if(rota[i]!=INT_MAX){
+            printf("%d ",rota[i]);
+        }
+    }
+    printf("\n");
+}
+void gerarArquivo(Grafo* grafo){
+    FILE *arquivo; // Ponteiro para o arquivo
+
+    // Abre o arquivo para escrita. Se o arquivo não existir, ele será criado.
+    // Se o arquivo existir, seu conteúdo será truncado.
+    arquivo = fopen("C:\\Users\\User\\Desktop\\Grafo novo.txt", "w");
+
+    // Verifica se a abertura do arquivo foi bem-sucedida
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;// Encerra o programa com código de erro
+    }
+
+    // Escreve no arquivo
+    for (int i = 0; i < grafo->v; i++) {
+        Lista* corrente = grafo->listaAdj[i];
+        while (corrente != NULL) {
+            fprintf(arquivo, "%d %d %.2f\n",i,corrente->num,corrente->peso);
+            corrente = corrente->prox;
+        }
+    }
+    // Fecha o arquivo
+    fclose(arquivo);
+
+    printf("Arquivo criado com sucesso.\n");
 }

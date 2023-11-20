@@ -8,6 +8,7 @@
 typedef struct lista {
     int num;
     float peso;
+    int pai;
     struct lista* prox;
 }Lista;
 
@@ -33,4 +34,6 @@ void unir(int subsets[], int x, int y);
 int compararPeso(const void* a, const void* b);
 Grafo* kruskal(Grafo* grafo);
 void dijkstra(Grafo* grafo, int origem, int destino);
-
+void gerarArquivo(Grafo* grafo);
+void DFSRecursivo(Grafo* grafo, int vertice, int visitados[]);
+int DFS(Grafo* grafo);
