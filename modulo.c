@@ -6,6 +6,7 @@ void menu() {
     int op,partida,destino;
 
     grafo=lerArquivo(grafo);
+    Grafo* arvoreCaminhoMin= criarGrafo(grafo->v);
     if(DFS(grafo)>1){
         printf("Grafo nao conexo, nao e possivel de obter uma arvore geradora minima\n");
         return;
@@ -14,7 +15,7 @@ void menu() {
 
     do{
         puts("------------------------------DIGITE SUA OPCAO------------------------------\n\n");
-        printf("\t1 - Exibir grafo\n\t2 - Exibir arvore geradora minima\n\t3 - Informar valor de menor caminho\n\t4- Gerar arquivo de arvore de caminhos minimos\n\t0 - Sair\n");
+        printf("\t1 - Exibir grafo\n\t2 - Exibir arvore geradora minima\n\t3 - Informar valor de menor caminho\n\t4 - Gerar arquivo de arvore de caminhos minimos\n\t0 - Sair\n");
         scanf("%d",&op);
         switch (op) {
             case 1:
@@ -31,10 +32,9 @@ void menu() {
                 dijkstra(arvoreGeradoraMin,partida,destino);
                 break;
             case 4:
-                gerarArquivo(arvoreGeradoraMin);
-                break;
-            case 5:
-                DFS(grafo);
+                printf("\nDefina o vertice fonte: ");
+                scanf("%d",&partida);
+                gerarArquivo(grafo,arvoreCaminhoMin,partida);
                 break;
             case 0:
                 for (int i = 0; i < grafo->v; i++) {
@@ -131,6 +131,11 @@ void addAresta(Grafo* grafo, int origem, int fim,float peso) {
     Lista* novoNo2 = criarNo(origem,peso);
     novoNo2->prox = grafo->listaAdj[fim];
     grafo->listaAdj[fim] = novoNo2;
+}
+void addArestaUniDirecao(Grafo* grafo, int origem, int fim,float peso) {
+    Lista* novoNo1 = criarNo(origem,peso);
+    novoNo1->prox = grafo->listaAdj[fim];
+    grafo->listaAdj[fim] = novoNo1;
 }
 
 //FUNÇÃO DE EXIBIR O GRAFO EM FORMA DE LISTA DE ADJACÊNCIA
@@ -311,7 +316,60 @@ void dijkstra(Grafo* grafo, int origem, int destino) {
     }
     printf("\n");
 }
-void gerarArquivo(Grafo* grafo){
+void gerarArquivo(Grafo* grafo,Grafo* novo,int origem){
+    int V = grafo->v,contaAresta=0;
+    float dist[V]; // Armazena as distâncias mínimas
+    int visitado[V],rota[V];// Marca os vértices visitados
+
+    // Inicializa as distâncias e os vértices visitados
+    for (int i = 0; i < V; ++i) {
+        dist[i] = FLT_MAX;
+        visitado[i] = 0;
+        rota[i]=INT_MAX;
+    }
+
+    // A distância de origem para ela mesma é sempre 0
+    dist[origem] = 0;
+
+    // Encontrar o caminho mais curto para todos os vértices
+    for (int cont = 0; cont < V - 1; ++cont) {
+        int u = -1;  // Inicializa u como -1 para detectar se nenhum vértice foi escolhido ainda
+        float min_dist = FLT_MAX;
+
+        // Escolhe o vértice com a menor distância ainda não visitado
+        for (int i = 0; i < V; ++i) {
+            if (!visitado[i] && dist[i] < min_dist) {
+                min_dist = dist[i];
+                u = i;
+            }
+        }
+
+        // Verifica se algum vértice foi escolhido
+        if (u == -1) {
+            // Todos os vértices atingíveis foram visitados
+            break;
+        }
+
+        // Marca o vértice escolhido como visitado
+        visitado[u] = 1;
+
+        // Atualiza a distância dos vértices adjacentes ao vértice escolhido
+        Lista* temp = grafo->listaAdj[u];
+        while (temp != NULL) {
+            int v = temp->num;
+            if (!visitado[v] && dist[u] != FLT_MAX && dist[u] + temp->peso < dist[v]) {
+                dist[v] = dist[u] + temp->peso;
+                grafo->listaAdj[v]->pai=u;
+            }
+            temp = temp->prox;
+        }
+    }
+    for (int i = 0; i < V; ++i) {
+        if (i != origem) {
+            addArestaUniDirecao(novo,grafo->listaAdj[i]->pai,i,dist[i]);
+            contaAresta+=1;
+        }
+    }
     FILE *arquivo; // Ponteiro para o arquivo
 
     // Abre o arquivo para escrita. Se o arquivo não existir, ele será criado.
@@ -325,10 +383,12 @@ void gerarArquivo(Grafo* grafo){
     }
 
     // Escreve no arquivo
-    for (int i = 0; i < grafo->v; i++) {
-        Lista* corrente = grafo->listaAdj[i];
+    fprintf(arquivo,"%d\n",V);
+    fprintf(arquivo,"%d\n",contaAresta);
+    for (int i = 0; i < novo->v; i++) {
+        Lista* corrente = novo->listaAdj[i];
         while (corrente != NULL) {
-            fprintf(arquivo, "%d %d %.2f\n",i,corrente->num,corrente->peso);
+            fprintf(arquivo, "%d %d %.1f\n",i,corrente->num,corrente->peso);
             corrente = corrente->prox;
         }
     }
