@@ -6,8 +6,10 @@ void menu() {
     int op,partida,destino;
 
     grafo=lerArquivo(grafo);
-
-    Grafo* componentes[DFS(grafo)];
+    if(DFS(grafo)>1){
+        printf("Grafo nao conexo, nao e possivel de obter uma arvore geradora minima\n");
+        return;
+    }
     arvoreGeradoraMin=kruskal(grafo);
 
     do{
@@ -162,7 +164,6 @@ void DFSRecursivo(Grafo* grafo, int vertice, int visitados[]) {
 
 // Função de busca em profundidade
 int DFS(Grafo* grafo) {
-    Grafo* componentes[100];
     int V = grafo->v,qtdComponentes=0;
     int *visitados = (int *)malloc(V * sizeof(int));
 
